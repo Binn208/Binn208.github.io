@@ -50,11 +50,12 @@ export default function HanoiPlanningMap({
         version: 8,
         glyphs: GLYPHS_URL,
         sources: {
-          openmaptiles: {
-            type: 'vector',
-            url: `${MAP_BASE_URL}/api/tiles/basemap-hanoi/tilejson.json`,
-            attribution: '© DatViet AI · OpenMapTiles · Hà Nội'
-          },
+openmaptiles: {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '© OpenStreetMap contributors'
+      },
           hn: {
             type: 'vector',
             url: `${MAP_BASE_URL}/api/tiles/hanoi/tilejson.json`
