@@ -5,8 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/',
+  base: './', // Sửa lại thành './' để nhận đúng đường dẫn tương đối
   optimizeDeps: {
+    // ... giữ nguyên mã cũ
     exclude: ['maplibre-gl']
   },
   server: {
