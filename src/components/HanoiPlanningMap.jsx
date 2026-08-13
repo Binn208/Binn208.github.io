@@ -3,10 +3,8 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import {
   MAP_BASE_URL,
-  GLYPHS_URL,
   HANOI_CENTER,
   HANOI_ZOOM,
-  BASE_LAYERS,
   ZONING_LAYERS,
   METRO_PLANNED_LAYERS,
   AIRPORT_LAYERS,
@@ -35,45 +33,7 @@ export default function HanoiPlanningMap({
       zoom: HANOI_ZOOM,
       minZoom: 8,
       maxZoom: 17,
-      transformRequest: (url) => {
-        if (url.includes('gateway.datviet.ai')) {
-          return { url: `https://corsproxy.io/?${encodeURIComponent(url)}` };
-        }
-        return { url };
-      },
-      style: {
-        version: 8,
-        glyphs: GLYPHS_URL,
-        sources: {
-          openmaptiles: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors'
-          },
-          hn: {
-            type: 'vector',
-            url: `https://corsproxy.io/?${encodeURIComponent(`${MAP_BASE_URL}/api/tiles/hanoi/tilejson.json`)}`
-          },
-          metro: { type: 'geojson', data: './metro-hanoi.geojson' },
-          metrop: { type: 'geojson', data: './metro-hanoi-planned.geojson' },
-          gadk: { type: 'geojson', data: './metro-hanoi-ga-dukien.geojson' },
-          apt: { type: 'geojson', data: './hanoi-airports.geojson' }
-        },
-        layers: [
-          {
-            id: 'bg',
-            type: 'background',
-            paint: { 'background-color': '#f4f3ee' }
-          },
-          ...BASE_LAYERS,
-          ...ZONING_LAYERS,
-          ...AIRPORT_LAYERS,
-          ...METRO_PLANNED_LAYERS,
-          ...GA_DUKIEN_LAYERS,
-          ...METRO_ACTIVE_LAYERS
-        ]
-      }
+      style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
     });
 
     mapInstanceRef.current = map;
@@ -85,6 +45,30 @@ export default function HanoiPlanningMap({
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), 'bottom-left');
 
     map.on('load', () => {
+      // Add custom Hanoi vector source & geojson sources
+      map.addSource('hn', {
+        type: 'vector',
+        url: `https://corsproxy.io/?${encodeURIComponent(`${MAP_BASE_URL}/api/tiles/hanoi/tilejson.json`)}`
+      });
+
+      map.addSource('metro', { type: 'geojson', data: './metro-hanoi.geojson' });
+      map.addSource('metrop', { type: 'geojson', data: './metro-hanoi-planned.geojson' });
+      map.addSource('gadk', { type: 'geojson', data: './metro-hanoi-ga-dukien.geojson' });
+      map.addSource('apt', { type: 'geojson', data: './hanoi-airports.geojson' });
+
+      // Add planning & overlay layers on top of Carto basemap
+      [
+        ...ZONING_LAYERS,
+        ...AIRPORT_LAYERS,
+        ...METRO_PLANNED_LAYERS,
+        ...GA_DUKIEN_LAYERS,
+        ...METRO_ACTIVE_LAYERS
+      ].forEach((layer) => {
+        if (!map.getLayer(layer.id)) {
+          map.addLayer(layer);
+        }
+      });
+
       // Highlight selection overlay source & layers
       map.addSource('sel', {
         type: 'geojson',
@@ -108,7 +92,6 @@ export default function HanoiPlanningMap({
 
     // Handle Map Clicks
     map.on('click', (e) => {
-      // Check stations / lines first
       const stationFs = map.queryRenderedFeatures(e.point, {
         layers: ['metro-st', 'metrop-line', 'gadk-ring']
       });
@@ -159,7 +142,6 @@ export default function HanoiPlanningMap({
         }
       }
 
-      // Check zoning polygons
       const zoningFs = map.queryRenderedFeatures(e.point, {
         layers: ['qhpk-fill', 'qhc-fill', 'zon-line']
       });
@@ -185,7 +167,6 @@ export default function HanoiPlanningMap({
       }
     });
 
-    // Cursors
     const hoverableLayers = ['qhc-fill', 'qhpk-fill', 'metro-st', 'metrop-line', 'gadk-ring'];
     hoverableLayers.forEach((id) => {
       map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer'));
@@ -200,12 +181,11 @@ export default function HanoiPlanningMap({
     };
   }, []);
 
-  // Update Layer Visibility & Styling when layerState / isMetroView changes
+  // Update Layer Visibility & Styling
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !map.isStyleLoaded()) return;
 
-    // Helper visibility toggle
     const toggle = (layerId, visible) => {
       if (map.getLayer(layerId)) {
         map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
@@ -224,15 +204,9 @@ export default function HanoiPlanningMap({
     toggle('gadk-halo', layerState.gadk);
     toggle('gadk-ring', layerState.gadk);
 
-    // Opacity boost slider
     const fillOp = layerState.opacityBoost ? 0.28 : ZFILL_OPACITY;
     if (map.getLayer('qhc-fill')) map.setPaintProperty('qhc-fill', 'fill-opacity', fillOp);
     if (map.getLayer('qhpk-fill')) map.setPaintProperty('qhpk-fill', 'fill-opacity', fillOp + 0.08);
-
-    // Background color for metro dark vs light
-    if (map.getLayer('bg')) {
-      map.setPaintProperty('bg', 'background-color', isMetroView ? '#080c18' : '#f4f3ee');
-    }
   }, [layerState, isMetroView]);
 
   return <div ref={mapContainerRef} className="w-full h-full" />;
