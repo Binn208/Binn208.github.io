@@ -36,13 +36,8 @@ export default function HanoiPlanningMap({
       minZoom: 8,
       maxZoom: 17,
       transformRequest: (url) => {
-        // Redirect absolute gateway.datviet.ai URLs through local Vite proxy on localhost
-        if (typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) {
-          if (url.startsWith('https://gateway.datviet.ai')) {
-            return {
-              url: url.replace('https://gateway.datviet.ai', window.location.origin)
-            };
-          }
+        if (url.includes('gateway.datviet.ai')) {
+          return { url: `https://corsproxy.io/?${encodeURIComponent(url)}` };
         }
         return { url };
       },
@@ -50,20 +45,20 @@ export default function HanoiPlanningMap({
         version: 8,
         glyphs: GLYPHS_URL,
         sources: {
-openmaptiles: {
-        type: 'raster',
-        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize: 256,
-        attribution: '© OpenStreetMap contributors'
-      },
+          openmaptiles: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors'
+          },
           hn: {
             type: 'vector',
-            url: `${MAP_BASE_URL}/api/tiles/hanoi/tilejson.json`
+            url: `https://corsproxy.io/?${encodeURIComponent(`${MAP_BASE_URL}/api/tiles/hanoi/tilejson.json`)}`
           },
-          metro: { type: 'geojson', data: '/metro-hanoi.geojson' },
-          metrop: { type: 'geojson', data: '/metro-hanoi-planned.geojson' },
-          gadk: { type: 'geojson', data: '/metro-hanoi-ga-dukien.geojson' },
-          apt: { type: 'geojson', data: '/hanoi-airports.geojson' }
+          metro: { type: 'geojson', data: './metro-hanoi.geojson' },
+          metrop: { type: 'geojson', data: './metro-hanoi-planned.geojson' },
+          gadk: { type: 'geojson', data: './metro-hanoi-ga-dukien.geojson' },
+          apt: { type: 'geojson', data: './hanoi-airports.geojson' }
         },
         layers: [
           {
